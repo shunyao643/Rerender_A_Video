@@ -5,6 +5,15 @@ import torch.nn.functional as F
 
 @torch.no_grad()
 def find_flat_region(mask):
+    """
+    Find flat regions in the given mask.
+
+    Parameters:
+    - mask (torch.Tensor): Input mask tensor representing regions.
+
+    Returns:
+    - torch.Tensor: Tensor representing flat regions in the mask.
+    """
     device = mask.device
     kernel_x = torch.Tensor([[-1, 0, 1], [-1, 0, 1],
                              [-1, 0, 1]]).unsqueeze(0).unsqueeze(0).to(device)
@@ -18,6 +27,15 @@ def find_flat_region(mask):
 
 
 def numpy2tensor(img):
+    """
+    Convert a numpy image array to a PyTorch tensor.
+
+    Parameters:
+    - img (numpy.ndarray): Input image array.
+
+    Returns:
+    - torch.Tensor: Converted PyTorch tensor representing the image.
+    """
     x0 = torch.from_numpy(img.copy()).float().cuda() / 255.0 * 2.0 - 1.
     x0 = torch.stack([x0], dim=0)
     return einops.rearrange(x0, 'b h w c -> b c h w').clone()
