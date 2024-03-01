@@ -87,9 +87,21 @@ def forward_backward_consistency_check(fwd_flow,
                                        bwd_flow,
                                        alpha=0.01,
                                        beta=0.5):
-    # fwd_flow, bwd_flow: [B, 2, H, W]
-    # alpha and beta values are following UnFlow
-    # (https://arxiv.org/abs/1711.07837)
+    """
+    Perform forward-backward consistency check on flow fields. Alpha and beta values are following UnFlow
+    (https://arxiv.org/abs/1711.07837)
+
+    Parameters:
+    - fwd_flow (torch.Tensor): Forward flow tensor of [B, 2, H, W].
+    - bwd_flow (torch.Tensor): Backward flow tensor of [B, 2, H, W].
+    - alpha (float, optional): Alpha parameter.
+    - beta (float, optional): Beta parameter.
+
+    Returns:
+    - torch.Tensor: Forward occlusion tensor.
+    - torch.Tensor: Backward occlusion tensor.
+    """
+
     assert fwd_flow.dim() == 4 and bwd_flow.dim() == 4
     assert fwd_flow.size(1) == 2 and bwd_flow.size(1) == 2
     flow_mag = torch.norm(fwd_flow, dim=1) + torch.norm(bwd_flow,
@@ -115,6 +127,21 @@ def get_warped_and_mask(flow_model,
                         image2,
                         image3=None,
                         pixel_consistency=False):
+    """
+    Compute warped results and occlusion masks using a flow model.
+
+    Parameters:
+    - flow_model: Flow model.
+    - image1 (torch.Tensor): First input image.
+    - image2 (torch.Tensor): Second input image.
+    - image3 (torch.Tensor, optional): Third input image.
+    - pixel_consistency (bool, optional): Whether to apply pixel consistency.
+
+    Returns:
+    - torch.Tensor: Warped results tensor.
+    - torch.Tensor: Occlusion mask tensor.
+    - torch.Tensor: Backward flow tensor.
+    """
     if image3 is None:
         image3 = image1
     padder = InputPadder(image1.shape, padding_factor=8)
@@ -140,9 +167,18 @@ def get_warped_and_mask(flow_model,
     return warped_results, bwd_occ, bwd_flow
 
 
-class FlowCalc():
+class FlowCalc:
+    """
+    Class for computing optical flow and related operations using the GMFlow model.
+    """
 
     def __init__(self, model_path='./models/gmflow_sintel-0c07dcb3.pth'):
+        """
+        Initialize the FlowCalc instance with the GMFlow model.
+
+        Parameters:
+        - model_path (str): Path to the GMFlow model file.
+        """
         flow_model = GMFlow(
             feature_channels=128,
             num_scales=1,
@@ -162,7 +198,17 @@ class FlowCalc():
 
     @torch.no_grad()
     def get_flow(self, image1, image2, save_path=None):
+        """
+        Compute optical flow between two input images using the GMFlow model.
 
+        Parameters:
+        - image1 (numpy.ndarray): First input image.
+        - image2 (numpy.ndarray): Second input image.
+        - save_path (str, optional): Path to save the computed flow.
+
+        Returns:
+        - torch.Tensor: Computed backward flow tensor.
+        """
         if save_path is not None and os.path.exists(save_path):
             bwd_flow = read_flow(save_path)
             return bwd_flow
@@ -194,6 +240,17 @@ class FlowCalc():
 
     @torch.no_grad()
     def get_mask(self, image1, image2, save_path=None):
+        """
+        Compute the mask using the GMFlow model.
+
+        Parameters:
+        - image1 (numpy.ndarray): First input image.
+        - image2 (numpy.ndarray): Second input image.
+        - save_path (str, optional): Path to save the computed mask.
+
+        Returns:
+        - torch.Tensor: Computed mask tensor.
+        """
 
         if save_path is not None:
             mask_path = os.path.splitext(save_path)[0] + '.png'
@@ -226,6 +283,17 @@ class FlowCalc():
         return bwd_occ
 
     def warp(self, img, flow, mode='bilinear'):
+        """
+        Warp an image using the given flow field.
+
+        Parameters:
+        - img (numpy.ndarray): Input image to warp.
+        - flow (torch.Tensor): Flow field tensor.
+        - mode (str, optional): Interpolation mode for warping.
+
+        Returns:
+        - numpy.ndarray: Warped image.
+        """
         expand = False
         if len(img.shape) == 2:
             expand = True

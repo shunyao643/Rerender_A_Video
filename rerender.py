@@ -215,7 +215,9 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
     if first_img_only:
         exit(0)
 
+    # Iterate through each frame at the specified interval
     for i in range(0, min(len(imgs), cfg.frame_count) - 1, cfg.interval):
+        # Use 1-indexed numbering: current frame id (cid) = i + 1
         cid = i + 1
         print(cid)
         if cid <= (len(imgs) - 1):
@@ -225,15 +227,18 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = HWC3(frame)
 
+        # Colour correction setting
         if color_preserve:
             img_ = numpy2tensor(img)
         else:
             img_ = apply_color_correction(color_corrections,
                                           Image.fromarray(img))
             img_ = totensor(img_).unsqueeze(0)[:, :3] / 127.5 - 1
+
         encoder_posterior = model.encode_first_stage(img_.cuda())
         x0 = model.get_first_stage_encoding(encoder_posterior).detach()
 
+        # Apply Canny edge detection and convert to (H, W, 3) format
         detected_map = detector(img)
         detected_map = HWC3(detected_map)
 
