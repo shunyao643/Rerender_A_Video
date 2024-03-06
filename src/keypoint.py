@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 
 def detect_and_compute_keypoints(image, detector_type='ORB'):
@@ -115,9 +116,19 @@ def maximum_average_with_max_dist(series: list, max_dist: int, ) -> list:
     """
     Given a series of numbers, find the subsequence of length at most max_dist that has the maximum average.
     :param series: List of strictly non-negative numbers
-    :param max_dist: Maximum distance between two elements in the subsequence (e.g. index 1 and 3 are 2 apart)
+    :param max_dist: Maximum distance between two elements in the subsequence (e.g. index 1 and 3 are 2 apart). If max_dist = 0, the entire series is considered: returns only indices of maximum value.
     :return: List of indices of the subsequence with the maximum average
     """
+
+    assert len(series) > 0, "Series must be non-empty"
+    if max_dist == 0:
+        print(f"Warning: Maximum distance is 0. Setting max_dist to {len(series)}.")
+        max_value = max(series)
+        indices = [index for index, value in enumerate(series) if value == max_value]
+        return indices
+    if max_dist > len(series):
+        print(f"Warning: Maximum distance {max_dist} is greater than the length of the series {len(series)}. Setting max_dist to {len(series)}.")
+        max_dist = len(series)
 
     n = len(series) + 1
 
@@ -150,3 +161,41 @@ def maximum_average_with_max_dist(series: list, max_dist: int, ) -> list:
     for i in range(n):
         print(f"Index: {i:>2}, Average: {best_sum[i] / len(index_table[i]):>4.2f}, Indices Accessed: {index_table[i]}")
     return index_table[-1]
+
+
+def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: int,
+                                  matcher_type: str = 'BF', distance_metric: str = 'HAMMING', detector_type: str = 'ORB') -> list:
+    """
+    Select frames from a directory of images based on the number of matching keypoints.
+
+    Args:
+    - input_dir: Directory containing images
+    - max_dist: Maximum distance between two frames in the subsequence
+    - window_size: If window_size > 0, only consider matches between images that are within window_size of each other. 0 matches all images.
+    - matcher_type: Type of matching algorithm to use ('BF' for Brute-Force, 'FLANN' for FLANN-based matcher)
+    - distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors, 'L2' for floating-point descriptors)
+    - detector_type: Type of feature detector to use ('ORB', 'SIFT', 'SURF', 'FAST')
+
+    Returns:
+    - selected_frames: List of indices of the selected frames
+    """
+
+    # Read images from the input directory
+    image_paths = [f"{input_dir}/{filename}" for filename in sorted(os.listdir(input_dir))]
+
+    # Detect and compute keypoints for each image
+    keypoints_list = []
+    descriptors_list = []
+    for image_path in image_paths:
+        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        keypoints, descriptors = detect_and_compute_keypoints(image, detector_type)
+        keypoints_list.append(keypoints)
+        descriptors_list.append(descriptors)
+
+    # Find the number of matching keypoints between pairs of images
+    matching_keypoints = find_matching_keypoints(descriptors_list, window_size, return_keypoints=False)
+
+    # Find the subsequence of frames with the maximum average number of matching keypoints
+    selected_frames = maximum_average_with_max_dist(np.sum(matching_keypoints, axis=0), max_dist)
+
+    return selected_frames

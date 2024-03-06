@@ -15,6 +15,7 @@ from safetensors.torch import load_file
 from skimage import exposure
 
 import src.import_util  # noqa: F401
+from src.keypoint import select_frames_using_keypoints
 from deps.ControlNet.annotator.canny import CannyDetector
 from deps.ControlNet.annotator.hed import HEDdetector
 from deps.ControlNet.annotator.util import HWC3
@@ -57,6 +58,7 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
 
     # Preprocess input
     prepare_frames(cfg.input_path, cfg.input_dir, cfg.image_resolution, cfg.crop, cfg.use_limit_device_resolution)
+    selected_frames = select_frames_using_keypoints(cfg.input_dir, 10, 20)
 
     # Load models
     if cfg.control_type == 'HED':
@@ -216,7 +218,7 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
         exit(0)
 
     # Iterate through each frame at the specified interval
-    for i in range(0, min(len(imgs), cfg.frame_count) - 1, cfg.interval):
+    for i in selected_frames:
         # Use 1-indexed numbering: current frame id (cid) = i + 1
         cid = i + 1
         print(cid)
