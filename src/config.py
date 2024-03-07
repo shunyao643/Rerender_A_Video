@@ -18,6 +18,7 @@ class RerenderConfig:
                                key_subdir: str = 'keys',
                                frame_count: Optional[int] = None,
                                interval: int = 10,
+                               keypoint_detection: bool = False,
                                crop: Sequence[int] = (0, 0, 0, 0),
                                sd_model: Optional[str] = None,
                                a_prompt: str = '',
@@ -59,6 +60,7 @@ class RerenderConfig:
         self.frame_count = frame_count
         if frame_count is None:
             self.frame_count = get_frame_count(self.input_path)
+        self.keypoint_detection = keypoint_detection
         self.interval = interval
         self.crop = crop
         self.sd_model = sd_model
@@ -112,6 +114,7 @@ class RerenderConfig:
         append_if_not_none('key_subdir')
         append_if_not_none('frame_count')
         append_if_not_none('interval')
+        append_if_not_none('keypoint_detection')
         append_if_not_none('crop')
         append_if_not_none('sd_model')
         append_if_not_none('a_prompt')

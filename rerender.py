@@ -58,7 +58,6 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
 
     # Preprocess input
     prepare_frames(cfg.input_path, cfg.input_dir, cfg.image_resolution, cfg.crop, cfg.use_limit_device_resolution)
-    selected_frames = select_frames_using_keypoints(cfg.input_dir, 10, 20)
 
     # Load models
     if cfg.control_type == 'HED':
@@ -216,6 +215,12 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
 
     if first_img_only:
         exit(0)
+
+    if cfg.keypoint_detection:
+        selected_frames = select_frames_using_keypoints(cfg.input_dir, 10, 20)
+        selected_frames = [x for x in selected_frames if x < cfg.frame_count]
+    else:
+        selected_frames = range(0, min(len(imgs), cfg.frame_count) - 1, cfg.interval)
 
     # Iterate through each frame at the specified interval
     for i in selected_frames:
