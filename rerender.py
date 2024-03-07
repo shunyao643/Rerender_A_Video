@@ -217,7 +217,10 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
         exit(0)
 
     if cfg.keypoint_detection:
-        selected_frames = select_frames_using_keypoints(cfg.input_dir, 10, 20)
+        selected_frames = select_frames_using_keypoints(cfg.input_dir, max_dist=10, window_size=20,
+                                                        matcher_type=cfg.matcher_type,
+                                                        distance_metric=cfg.distance_metric,
+                                                        detector_type=cfg.detector_type)
         selected_frames = [x for x in selected_frames if x < cfg.frame_count]
     else:
         selected_frames = range(0, min(len(imgs), cfg.frame_count) - 1, cfg.interval)

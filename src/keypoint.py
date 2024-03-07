@@ -41,7 +41,8 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
     - descriptor1: Descriptors of keypoints from the first image
     - descriptor2: Descriptors of keypoints from the second image
     - matcher_type: Type of matching algorithm to use ('BF' for Brute-Force, 'FLANN' for FLANN-based matcher)
-    - distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors, 'L2' for floating-point descriptors)
+    - distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors,
+    'L2' for floating-point descriptors)
     - return_keypoints: Boolean flag indicating whether to return the matched keypoints
 
     Returns:
@@ -53,7 +54,8 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
         raise ValueError("Invalid matcher_type. Use 'BF' for Brute-Force or 'FLANN' for FLANN-based matcher.")
 
     if distance_metric not in ['HAMMING', 'L2']:
-        raise ValueError("Invalid distance_metric. Use 'HAMMING' for binary descriptors or 'L2' for floating-point descriptors.")
+        raise ValueError("Invalid distance_metric. Use 'HAMMING' for binary descriptors or 'L2' for floating-point "
+                         "descriptors.")
 
     # Select the appropriate matcher object based on the provided type
     if matcher_type == 'BF':
@@ -81,11 +83,15 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
         return len(matches)
 
 
-def find_matching_keypoints(descriptors_list, calculation_window_size=20, return_keypoints=False):
+def find_matching_keypoints(descriptors_list, calculation_window_size=20,
+                            matcher_type='BF', distance_metric='HAMMING', return_keypoints=False):
     """
     Find the number of matching keypoints between pairs of images in the input list
     within (window_size // 2) frames before and after the current frame.
 
+    :param distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors,
+    'L2' for floating-point descriptors)
+    :param matcher_type: Type of matching algorithm to use ('BF' for Brute-Force, 'FLANN' for FLANN-based matcher)
     :param descriptors_list: A list containing descriptors for each image.
     :param calculation_window_size: If window_size > 0, only consider matches between images
                         that are within window_size of each other. 0 matches all images.
@@ -101,18 +107,24 @@ def find_matching_keypoints(descriptors_list, calculation_window_size=20, return
     if calculation_window_size == 0:
         for i in range(num_images):
             for j in range(i + 1, num_images):
-                matching_keypoints[i][j] = match_keypoints(descriptors_list[i], descriptors_list[j], return_keypoints=return_keypoints)
+                matching_keypoints[i][j] = match_keypoints(descriptors_list[i], descriptors_list[j],
+                                                           matcher_type=matcher_type, distance_metric=distance_metric,
+                                                           return_keypoints=return_keypoints)
     else:
         for i in range(num_images):
-            for j in range(max(0, i - calculation_window_size // 2), min(num_images, i + calculation_window_size // 2 + 1)):
+            for j in range(max(0, i - calculation_window_size // 2),
+                           min(num_images, i + calculation_window_size // 2 + 1)):
                 if i != j:
-                    matching_keypoints[i][j] = match_keypoints(descriptors_list[i], descriptors_list[j], return_keypoints=return_keypoints)
+                    matching_keypoints[i][j] = match_keypoints(descriptors_list[i], descriptors_list[j],
+                                                               matcher_type=matcher_type,
+                                                               distance_metric=distance_metric,
+                                                               return_keypoints=return_keypoints)
 
     matching_keypoints += matching_keypoints.T
     return matching_keypoints
 
 
-def maximum_average_with_max_dist(series: list, max_dist: int, ) -> list:
+def maximum_average_with_max_dist(series: list, max_dist: int) -> list:
     """
     Given a series of numbers, find the subsequence of length at most max_dist that has the maximum average.
     :param series: List of strictly non-negative numbers
@@ -162,22 +174,22 @@ def maximum_average_with_max_dist(series: list, max_dist: int, ) -> list:
 
 
 def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: int,
-                                  matcher_type: str = 'BF', distance_metric: str = 'HAMMING', detector_type: str = 'ORB') -> list:
+                                  matcher_type: str = 'BF', distance_metric: str = 'HAMMING',
+                                  detector_type: str = 'ORB') -> list:
     """
     Select frames from a directory of images based on the number of matching keypoints.
-
-    Args:
-    - input_dir: Directory containing images
-    - max_dist: Maximum distance between two frames in the subsequence
-    - window_size: If window_size > 0, only consider matches between images that are within window_size of each other. 0 matches all images.
-    - matcher_type: Type of matching algorithm to use ('BF' for Brute-Force, 'FLANN' for FLANN-based matcher)
-    - distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors, 'L2' for floating-point descriptors)
-    - detector_type: Type of feature detector to use ('ORB', 'SIFT', 'SURF', 'FAST')
-
-    Returns:
-    - selected_frames: List of indices of the selected frames
+    :param input_dir: Directory containing images
+    :param max_dist: Maximum distance between two frames in the subsequence
+    :param window_size: If window_size > 0, only consider matches between images that are within window_size of each
+    other. 0 matches all images.
+    :param matcher_type: Type of matching algorithm to use ('BF' for Brute-Force, 'FLANN' for
+    FLANN-based matcher)
+    :param distance_metric: Distance metric to use for matching ('HAMMING' for binary descriptors,
+    'L2' for floating-point descriptors)
+    :param detector_type: Type of feature detector to use ('ORB', 'SIFT', 'SURF',
+    'FAST')
+    :return: List of indices of the selected frames
     """
-
     # Read images from the input directory
     image_paths = [f"{input_dir}/{filename}" for filename in sorted(os.listdir(input_dir))]
 
@@ -186,12 +198,13 @@ def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: in
     descriptors_list = []
     for image_path in image_paths:
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        keypoints, descriptors = detect_and_compute_keypoints(image, detector_type)
+        keypoints, descriptors = detect_and_compute_keypoints(image, detector_type, detector_type=detector_type)
         keypoints_list.append(keypoints)
         descriptors_list.append(descriptors)
 
     # Find the number of matching keypoints between pairs of images
-    matching_keypoints = find_matching_keypoints(descriptors_list, window_size, return_keypoints=False)
+    matching_keypoints = find_matching_keypoints(descriptors_list, window_size,
+                                                 matcher_type=matcher_type, distance_metric=distance_metric)
 
     # Find the subsequence of frames with the maximum average number of matching keypoints
     selected_frames = maximum_average_with_max_dist(np.sum(matching_keypoints, axis=0), max_dist)

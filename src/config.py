@@ -41,6 +41,9 @@ class RerenderConfig:
                                smooth_boundary: bool = True,
                                color_preserve: bool = True,
                                loose_cfattn: bool = False,
+                               matcher_type: str = "BF",
+                               distance_metric: str = "HAMMING",
+                               detector_type: str = "ORB",
                                freeu_args: Tuple[int] = (1, 1, 1, 1),
                                **kwargs):
         self.input_path = input_path
@@ -90,6 +93,9 @@ class RerenderConfig:
         self.smooth_boundary = smooth_boundary
         self.color_preserve = color_preserve
         self.loose_cfattn = loose_cfattn
+        self.matcher_type = matcher_type,
+        self.distance_metric = distance_metric,
+        self.detector_type = detector_type,
         self.freeu_args = freeu_args
 
         os.makedirs(self.input_dir, exist_ok=True)
@@ -140,6 +146,9 @@ class RerenderConfig:
         append_if_not_none('smooth_boundary')
         append_if_not_none('color_perserve')
         append_if_not_none('loose_cfattn')
+        append_if_not_none('matcher_type')
+        append_if_not_none('distance_metric')
+        append_if_not_none('detector_type')
         append_if_not_none('freeu_args')
         self.create_from_parameters(**kwargs)
 
