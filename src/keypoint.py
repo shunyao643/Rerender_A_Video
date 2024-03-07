@@ -158,8 +158,6 @@ def maximum_average_with_max_dist(series: list, max_dist: int, ) -> list:
                 index_table[i] = index_table[j] + [j]
                 best_sum[i] = best_sum[j] + series[j]
 
-    for i in range(n):
-        print(f"Index: {i:>2}, Average: {best_sum[i] / len(index_table[i]):>4.2f}, Indices Accessed: {index_table[i]}")
     return index_table[-1]
 
 
