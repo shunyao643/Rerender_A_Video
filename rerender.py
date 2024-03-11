@@ -29,6 +29,7 @@ from src.ddim_v_hacked import DDIMVSampler
 from src.freeu import freeu_forward
 from src.img_util import find_flat_region, numpy2tensor
 from src.video_util import frame_to_video, get_fps, prepare_frames
+from eval.clip_evaluation import evaluate_clip
 
 blur = T.GaussianBlur(kernel_size=(9, 9), sigma=(18, 18))
 totensor = T.PILToTensor()
@@ -482,3 +483,6 @@ if __name__ == '__main__':
         torch.cuda.empty_cache()
     if not args.nb:
         postprocess(cfg, args.ne, args.n_proc, args.tmp, not args.nps)
+        evaluate_clip(original_frame_dir=f"{cfg.work_dir}/video", output_frame_dir=f"{cfg.work_dir}/blend",
+                      text_prompt=args.prompt)
+
