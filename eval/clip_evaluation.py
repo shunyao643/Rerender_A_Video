@@ -61,7 +61,7 @@ def evaluate_clip(original_frame_dir: str, output_frame_dir: str, text_prompt: s
         original_features_tensor[batch_start:batch_end] = batch_image_features
 
     # Process the text prompt
-    text = processor(text_prompt, return_tensors="pt", padding=True)
+    text = processor(text=text_prompt, return_tensors="pt", padding=True)
     text_features = model.get_text_features(**text)
 
     # Calculate pairwise cosine similarity between (prompt and each NEW image) AND (prompt and each OLD image)
