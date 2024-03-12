@@ -484,5 +484,5 @@ if __name__ == '__main__':
     if not args.nb:
         postprocess(cfg, args.ne, args.n_proc, args.tmp, not args.nps)
         evaluate_clip(original_frame_dir=f"{cfg.work_dir}/video", output_frame_dir=f"{cfg.work_dir}/blend",
-                      text_prompt=args.prompt)
+                      text_prompt=cfg.prompt)
 
