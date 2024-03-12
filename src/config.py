@@ -93,9 +93,9 @@ class RerenderConfig:
         self.smooth_boundary = smooth_boundary
         self.color_preserve = color_preserve
         self.loose_cfattn = loose_cfattn
-        self.matcher_type = matcher_type,
-        self.distance_metric = distance_metric,
-        self.detector_type = detector_type,
+        self.matcher_type = matcher_type
+        self.distance_metric = distance_metric
+        self.detector_type = detector_type
         self.freeu_args = freeu_args
 
         os.makedirs(self.input_dir, exist_ok=True)

@@ -198,7 +198,7 @@ def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: in
     descriptors_list = []
     for image_path in image_paths:
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        keypoints, descriptors = detect_and_compute_keypoints(image, detector_type, detector_type=detector_type)
+        keypoints, descriptors = detect_and_compute_keypoints(image, detector_type=detector_type)
         keypoints_list.append(keypoints)
         descriptors_list.append(descriptors)
 
