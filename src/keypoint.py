@@ -83,8 +83,8 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
         return len(matches)
 
 
-def find_matching_keypoints(descriptors_list, calculation_window_size=20,
-                            matcher_type='BF', distance_metric='HAMMING', return_keypoints=False):
+def find_matching_keypoints(descriptors_list: list, calculation_window_size=20,
+                            matcher_type='BF', distance_metric='HAMMING', return_keypoints=False) -> list:
     """
     Find the number of matching keypoints between pairs of images in the input list
     within (window_size // 2) frames before and after the current frame.
@@ -124,11 +124,27 @@ def find_matching_keypoints(descriptors_list, calculation_window_size=20,
     return matching_keypoints
 
 
+def maximum_per_bucket(descriptors_list: list, bucket_size: int = 10) -> list:
+    """
+    Extracts frames indices with the most matching keypoints from each bucket
+    :param descriptors_list: A list containing descriptors for each image.
+    :param bucket_size: Number of frames per bucket
+    :return: List of indices of the selected frames
+    """
+    maximum_indices = []
+    for i in range(0, len(descriptors_list), bucket_size):
+        bucket = descriptors_list[i:i + bucket_size]
+        max_index = max(enumerate(bucket), key=lambda x: x[1])[0]
+        maximum_indices.append(i + max_index)
+    return maximum_indices
+
+
 def maximum_average_with_max_dist(series: list, max_dist: int) -> list:
     """
     Given a series of numbers, find the subsequence of length at most max_dist that has the maximum average.
     :param series: List of strictly non-negative numbers
-    :param max_dist: Maximum distance between two elements in the subsequence (e.g. index 1 and 3 are 2 apart). If max_dist = 0, the entire series is considered: returns only indices of maximum value.
+    :param max_dist: Maximum distance between two elements in the subsequence (e.g. index 1 and 3 are 2 apart).
+    If max_dist = 0, the entire series is considered: returns only indices of maximum value.
     :return: List of indices of the subsequence with the maximum average
     """
 
@@ -139,7 +155,8 @@ def maximum_average_with_max_dist(series: list, max_dist: int) -> list:
         indices = [index for index, value in enumerate(series) if value == max_value]
         return indices
     if max_dist > len(series):
-        print(f"Warning: Maximum distance {max_dist} is greater than the length of the series {len(series)}. Setting max_dist to {len(series)}.")
+        print(f"Warning: Maximum distance {max_dist} is greater than the length of the series {len(series)}. "
+              f"Setting max_dist to {len(series)}.")
         max_dist = len(series)
 
     n = len(series) + 1
