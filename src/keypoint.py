@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import time
 
 
 def detect_and_compute_keypoints(image, detector_type='ORB'):
@@ -15,6 +16,7 @@ def detect_and_compute_keypoints(image, detector_type='ORB'):
     - keypoints: Detected keypoints
     - descriptors: Computed descriptors
     """
+    _start_time = time.time()
     # Select the appropriate feature detector based on the provided type
     if detector_type == 'ORB':
         detector = cv2.ORB_create()
@@ -29,6 +31,9 @@ def detect_and_compute_keypoints(image, detector_type='ORB'):
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = detector.detectAndCompute(image, None)
+
+    _end_time = time.time()
+    print(f"[TIME] (detect_and_compute_keypoints): {_end_time - _start_time:.4f} seconds")
 
     return keypoints, descriptors
 
@@ -49,6 +54,7 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
     - matches: List of matched keypoints (if return_keypoints=True)
     - num_matches: Number of matched keypoints (if return_keypoints=False)
     """
+    _start_time = time.time()
     # Validate input matcher_type and distance_metric
     if matcher_type not in ['BF', 'FLANN']:
         raise ValueError("Invalid matcher_type. Use 'BF' for Brute-Force or 'FLANN' for FLANN-based matcher.")
@@ -73,6 +79,9 @@ def match_keypoints(descriptor1, descriptor2, matcher_type='BF', distance_metric
 
     # Perform keypoint matching
     matches = matcher.match(descriptor1, descriptor2)
+
+    _end_time = time.time()
+    print(f"[TIME] (match_keypoints): {_end_time - _start_time:.4f} seconds")
 
     if return_keypoints:
         # Sort matches based on their distances
@@ -100,6 +109,7 @@ def find_matching_keypoints(descriptors_list: list, calculation_window_size=20,
     :param return_keypoints: Boolean flag indicating whether to return the matched
                              keypoints
     """
+    _start_time = time.time()
     assert calculation_window_size >= 0, "Window size must be non-negative"
     num_images = len(descriptors_list)
     matching_keypoints = np.zeros((num_images, num_images), dtype=int)
@@ -121,6 +131,8 @@ def find_matching_keypoints(descriptors_list: list, calculation_window_size=20,
                                                                return_keypoints=return_keypoints)
 
     matching_keypoints += matching_keypoints.T
+    _end_time = time.time()
+    print(f"[TIME] (find_matching_keypoints): {_end_time - _start_time:.4f} seconds")
     return matching_keypoints
 
 
@@ -131,11 +143,14 @@ def maximum_per_bucket(descriptors_list: list, bucket_size: int = 10) -> list:
     :param bucket_size: Number of frames per bucket
     :return: List of indices of the selected frames
     """
+    _start_time = time.time()
     maximum_indices = []
     for i in range(0, len(descriptors_list), bucket_size):
         bucket = descriptors_list[i:i + bucket_size]
         max_index = max(enumerate(bucket), key=lambda x: x[1])[0]
         maximum_indices.append(i + max_index)
+    _end_time = time.time()
+    print(f"[TIME] (maximum_per_bucket): {_end_time - _start_time:.4f} seconds")
     return maximum_indices
 
 
@@ -147,7 +162,7 @@ def maximum_average_with_max_dist(series: list, max_dist: int) -> list:
     If max_dist = 0, the entire series is considered: returns only indices of maximum value.
     :return: List of indices of the subsequence with the maximum average
     """
-
+    _start_time = time.time()
     assert len(series) > 0, "Series must be non-empty"
     if max_dist == 0:
         print(f"Warning: Maximum distance is 0. Setting max_dist to {len(series)}.")
@@ -186,7 +201,8 @@ def maximum_average_with_max_dist(series: list, max_dist: int) -> list:
                 current_best_avg = new_avg
                 index_table[i] = index_table[j] + [j]
                 best_sum[i] = best_sum[j] + series[j]
-
+    _end_time = time.time()
+    print(f"[TIME] (maximum_average_with_max_dist): {_end_time - _start_time:.4f} seconds")
     return index_table[-1]
 
 
@@ -208,6 +224,7 @@ def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: in
     :return: List of indices of the selected frames
     """
     # Read images from the input directory
+    _start_time = time.time()
     image_paths = [f"{input_dir}/{filename}" for filename in sorted(os.listdir(input_dir))]
 
     # Detect and compute keypoints for each image
@@ -222,8 +239,19 @@ def select_frames_using_keypoints(input_dir: str, max_dist: int, window_size: in
     # Find the number of matching keypoints between pairs of images
     matching_keypoints = find_matching_keypoints(descriptors_list, window_size,
                                                  matcher_type=matcher_type, distance_metric=distance_metric)
+    _end_time_1 = time.time()
+    print(f"[TIME] (select_frames_using_keypoints): {_end_time_1 - _start_time:.4f} seconds")
 
     # Find the subsequence of frames with the maximum average number of matching keypoints
     selected_frames = maximum_average_with_max_dist(np.sum(matching_keypoints, axis=0), max_dist)
+
+    _end_time_2 = time.time()
+    print(f"[TIME] (TOTAL run time - maximum_average_with_max_dist): {_end_time_2 - _start_time:.4f} seconds")
+
+    selected_frames = maximum_per_bucket(np.sum(matching_keypoints, axis=0), bucket_size=max_dist)
+
+    _end_time_3 = time.time()
+    print(f"[TIME] (TOTAL run time - maximum_per_bucket           ):"
+          f"{(_end_time_3 - _end_time_2) + (_end_time_1 - _start_time):.4f} seconds")
 
     return selected_frames
