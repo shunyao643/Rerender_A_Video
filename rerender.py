@@ -440,6 +440,9 @@ if __name__ == '__main__':
     parser.add_argument('-nb',
                         action='store_true',
                         help='Do not run postprocessing and run rerender only')
+    parser.add_argument('-eval',
+                        action='store_true',
+                        help='Run evaluation after postprocessing')
     parser.add_argument(
         '-ne',
         action='store_true',
@@ -483,6 +486,7 @@ if __name__ == '__main__':
         torch.cuda.empty_cache()
     if not args.nb:
         postprocess(cfg, args.ne, args.n_proc, args.tmp, not args.nps)
+    if args.eval:
         evaluate_clip(original_frame_dir=f"{cfg.work_dir}/video", output_frame_dir=f"{cfg.work_dir}/blend",
                       text_prompt=cfg.prompt)
 
