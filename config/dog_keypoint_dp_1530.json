@@ -1,0 +1,30 @@
+{
+    "input": "videos/dog.mp4",
+    "output": "videos/dog-keypoint-dynamic-dp-1530/blend.mp4",
+    "work_dir": "videos/dog-keypoint-dynamic-dp-1530/",
+    "key_subdir": "keys",
+    "sd_model": "models/realisticVisionV20_v20.safetensors",
+    "frame_count": 200,
+    "interval": 10,
+    "prompt": "greetings from a fox by shaking front paws",
+    "a_prompt": "best quality, extremely detailed",
+    "n_prompt": "longbody, lowres, bad anatomy, bad paws, cropped, worst quality, low quality",
+    "x0_strength": 0.95,
+    "control_type": "canny",
+    "canny_low": 50,
+    "canny_high": 100,
+    "control_strength": 0.7,
+    "seed": 0,
+    "warp_period": [
+        0,
+        0.1
+    ],
+    "ada_period": [
+        0.8,
+        1
+    ],
+    "keypoint_detection": true,
+    "use_dp_keypoint_selection": true,
+    "matching_window_size": 30,
+    "max_dist_frames": 15
+}

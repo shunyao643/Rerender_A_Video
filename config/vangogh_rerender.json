@@ -1,11 +1,10 @@
 {
     "input": "videos/pexels-antoni-shkraba-8048492-540x960-25fps.mp4",
-    "output": "videos/pexels-antoni-shkraba-8048492-540x960-25fps/blend.mp4",
-    "work_dir": "videos/pexels-antoni-shkraba-8048492-540x960-25fps",
+    "output": "videos/vangogh-rerender/blend.mp4",
+    "work_dir": "videos/vangogh-rerender/",
     "key_subdir": "keys",
     "frame_count": 102,
     "interval": 10,
-    "keypoint_detection": true,
     "crop": [
         0,
         0,

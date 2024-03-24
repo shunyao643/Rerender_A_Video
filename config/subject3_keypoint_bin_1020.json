@@ -1,0 +1,30 @@
+{
+    "input": "videos/subject3.mp4",
+    "output": "videos/subject3-keypoint-dynamic-bin-1020/blend.mp4",
+    "work_dir": "videos/subject3-keypoint-dynamic-bin-1020/",
+    "key_subdir": "keys",
+    "sd_model": "models/realisticVisionV20_v20.safetensors",
+    "frame_count": 200,
+    "interval": 10,
+    "prompt": "harry potter in hufflepuff robes with a wand in potions class",
+    "a_prompt": "RAW photo, subject, (high detailed skin:1.2), 8k uhd, dslr, soft lighting, high quality, film grain, Fujifilm XT3",
+    "n_prompt": "ron weasley, hermoine granger, severus snape, draco malfoy, bright room, gryffindor",
+    "x0_strength": 0.95,
+    "control_type": "canny",
+    "canny_low": 50,
+    "canny_high": 100,
+    "control_strength": 0.7,
+    "seed": 0,
+    "warp_period": [
+        0,
+        0.1
+    ],
+    "ada_period": [
+        0.8,
+        1
+    ],
+    "keypoint_detection": true,
+    "use_dp_keypoint_selection": false,
+    "matching_window_size": 20,
+    "max_dist_frames": 10
+}

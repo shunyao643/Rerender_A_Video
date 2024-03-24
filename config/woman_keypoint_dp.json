@@ -1,0 +1,27 @@
+{
+    "input": "videos/pexels-koolshooters-7322716.mp4",
+    "output": "videos/woman-keypoint-dynamic-dp/blend.mp4",
+    "work_dir": "videos/woman-keypoint-dynamic-dp",
+    "key_subdir": "keys",
+    "frame_count": 102,
+    "interval": 10,
+    "keypoint_detection": true,
+    "use_dp_keypoint_selection": true,
+    "prompt": "a beautiful woman in CG style",
+    "a_prompt": "best quality, extremely detailed",
+    "n_prompt": "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality",
+    "x0_strength": 0.75,
+    "control_type": "canny",
+    "canny_low": 50,
+    "canny_high": 100,
+    "control_strength": 0.7,
+    "seed": 0,
+    "warp_period": [
+        0,
+        0.1
+    ],
+    "ada_period": [
+        1,
+        1
+    ]
+}
