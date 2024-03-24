@@ -218,13 +218,17 @@ def rerender(cfg: RerenderConfig, first_img_only: bool, key_video_path: str):
         exit(0)
 
     if cfg.keypoint_detection:
-        selected_frames = select_frames_using_keypoints(cfg.input_dir, max_dist=10, window_size=20,
+        selected_frames = select_frames_using_keypoints(cfg.input_dir, max_dist=cfg.max_dist_frames,
+                                                        window_size=cfg.matching_window_size,
                                                         matcher_type=cfg.matcher_type,
                                                         distance_metric=cfg.distance_metric,
-                                                        detector_type=cfg.detector_type)
+                                                        detector_type=cfg.detector_type,
+                                                        use_dp_selection=cfg.use_dp_selection)
         selected_frames = [x for x in selected_frames if x < cfg.frame_count]
     else:
         selected_frames = range(0, min(len(imgs), cfg.frame_count) - 1, cfg.interval)
+
+    print(f"Selected frames: {selected_frames}")
 
     # Iterate through each frame at the specified interval
     for i in selected_frames:
@@ -406,7 +410,6 @@ def postprocess(cfg: RerenderConfig, ne: bool, max_process: int, tmp: bool,
     fps = get_fps(cfg.input_path)
 
     end_frame = cfg.frame_count - 1
-    interval = cfg.interval
     key_dir = os.path.split(cfg.key_dir)[-1]
     use_e = '-ne' if ne else ''
     use_tmp = '-tmp' if tmp else ''
@@ -415,7 +418,7 @@ def postprocess(cfg: RerenderConfig, ne: bool, max_process: int, tmp: bool,
 
     cmd = (
         f'python video_blend.py {video_base_dir} --beg 1 --end {end_frame} '
-        f'--itv {interval} --key {key_dir} {use_e} {o_video_cmd} --fps {fps} '
+        f'--key {key_dir} {use_e} {o_video_cmd} --fps {fps} '
         f'--n_proc {max_process} {use_tmp} {use_ps}')
     print(cmd)
     os.system(cmd)

@@ -125,3 +125,5 @@ def vram_limit_device_resolution(resolution, device="cuda"):
         print(f"Video will not resize")
         return resolution
     return device_resolution
+
+#%%

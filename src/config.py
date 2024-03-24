@@ -44,6 +44,9 @@ class RerenderConfig:
                                matcher_type: str = "BF",
                                distance_metric: str = "HAMMING",
                                detector_type: str = "ORB",
+                               matching_window_size: int = 20,
+                               max_dist_frames: int = 10,
+                               use_dp_keypoint_selection: bool = True,
                                freeu_args: Tuple[int] = (1, 1, 1, 1),
                                **kwargs):
         self.input_path = input_path
@@ -96,7 +99,10 @@ class RerenderConfig:
         self.matcher_type = matcher_type
         self.distance_metric = distance_metric
         self.detector_type = detector_type
+        self.use_dp_selection = use_dp_keypoint_selection
         self.freeu_args = freeu_args
+        self.matching_window_size = matching_window_size
+        self.max_dist_frames = max_dist_frames
 
         os.makedirs(self.input_dir, exist_ok=True)
         os.makedirs(self.work_dir, exist_ok=True)
@@ -121,6 +127,9 @@ class RerenderConfig:
         append_if_not_none('frame_count')
         append_if_not_none('interval')
         append_if_not_none('keypoint_detection')
+        append_if_not_none('matching_window_size')
+        append_if_not_none('max_dist_frames')
+        append_if_not_none('use_dp_keypoint_selection')
         append_if_not_none('crop')
         append_if_not_none('sd_model')
         append_if_not_none('a_prompt')

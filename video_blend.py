@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import platform
 import struct
@@ -20,7 +21,7 @@ from flow.flow_utils import flow_calc
 from src.video_util import frame_to_video
 
 OPEN_EBSYNTH_LOG = False
-MAX_PROCESS = 8
+MAX_PROCESS = 4
 
 os_str = platform.system()
 
@@ -56,21 +57,36 @@ def g_error_mask(dist1, dist2, weight1=1, weight2=1):
     return output
 
 
-def create_sequence(base_dir, beg, end, interval, key_dir):
-    sequence = VideoSequence(base_dir, beg, end, interval, 'video', key_dir,
+def create_sequence(base_dir, beg, end, key_dir):
+    sequence = VideoSequence(base_dir, beg, end, 'video', key_dir,
                              'tmp', '%04d.png', '%04d.png')
     return sequence
 
 
-def process_one_sequence(i, video_sequence: VideoSequence):
-    interval = video_sequence.interval
+def process_one_sequence(i, i_arr, video_sequence: VideoSequence):
+    sequence_length = len(i_arr)
     for is_forward in [True, False]:
-        input_seq = video_sequence.get_input_sequence(i, is_forward)
-        output_seq = video_sequence.get_output_sequence(i, is_forward)
-        flow_seq = video_sequence.get_flow_sequence(i, is_forward)
+        input_seq = video_sequence.get_input_sequence(i, j=1, is_forward=is_forward)
+        output_seq = video_sequence.get_output_sequence(i, j=1, is_forward=is_forward)
+        flow_seq = video_sequence.get_flow_sequence(i, j=1, is_forward=is_forward)
         key_img_id = i if is_forward else i + 1
         key_img = video_sequence.get_key_img(key_img_id)
-        for j in range(interval - 1):
+        logging.debug(f"[process_one_sequence] input_seq: {input_seq}\n" +
+                      f"[process_one_sequence] output_seq: {output_seq}\n" +
+                      f"[process_one_sequence] flow_seq: {flow_seq}\n" +
+                      f"[process_one_sequence] key_img: {key_img}")
+
+        if len(input_seq) == 0:
+            # 0 is for the case where there is no more frame to process (last one in key_frames)
+            return
+
+        if len(input_seq) == 1:
+            # 1 is for case where consecutive frames are both selected
+            img = cv2.imread(key_img)
+            cv2.imwrite(output_seq[0], img)
+            return
+
+        for j in range(len(input_seq) - 1):
             i1 = cv2.imread(input_seq[j])
             i2 = cv2.imread(input_seq[j + 1])
             flow_calc.get_flow(i1, i2, flow_seq[j])
@@ -78,14 +94,15 @@ def process_one_sequence(i, video_sequence: VideoSequence):
         guides: List[BaseGuide] = [
             ColorGuide(input_seq),
             EdgeGuide(input_seq,
-                      video_sequence.get_edge_sequence(i, is_forward)),
+                      video_sequence.get_edge_sequence(i, j=1, is_forward=is_forward)),
             TemporalGuide(key_img, output_seq, flow_seq,
-                          video_sequence.get_temporal_sequence(i, is_forward)),
+                          video_sequence.get_temporal_sequence(i, j=1, is_forward=is_forward)),
             PositionalGuide(flow_seq,
-                            video_sequence.get_pos_sequence(i, is_forward))
+                            video_sequence.get_pos_sequence(i, j=1, is_forward=is_forward))
         ]
+
         weights = [6, 0.5, 0.5, 2]
-        for j in range(interval):
+        for j in range(len(input_seq)):
             # key frame
             if j == 0:
                 img = cv2.imread(key_img)
@@ -93,6 +110,7 @@ def process_one_sequence(i, video_sequence: VideoSequence):
             else:
                 cmd = f'{ebsynth_bin} -style {os.path.abspath(key_img)}'
                 for g, w in zip(guides, weights):
+                    logging.debug(f'[process_one_sequence] g.get_cmd(j, w): {g.get_cmd(j, w)}')
                     cmd += ' ' + g.get_cmd(j, w)
 
                 cmd += (f' -output {os.path.abspath(output_seq[j])}'
@@ -105,8 +123,10 @@ def process_one_sequence(i, video_sequence: VideoSequence):
 
 
 def process_sequences(i_arr, video_sequence: VideoSequence):
-    for i in i_arr:
-        process_one_sequence(i, video_sequence)
+    # goal here is to process each part separately
+    for index, i in enumerate(i_arr):
+        logging.debug(f'[process_sequences] Processing subsequence index {index} ({i} in whole sequence) of {i_arr}')
+        process_one_sequence(i, i_arr, video_sequence)
 
 
 def run_ebsynth(video_sequence: VideoSequence):
@@ -114,18 +134,24 @@ def run_ebsynth(video_sequence: VideoSequence):
     beg = time.time()
 
     processes = []
+    # goal here is to split the sequences into n_process parts
     mp.set_start_method('spawn')
 
     n_process = min(MAX_PROCESS, video_sequence.n_seq)
-    cnt = video_sequence.n_seq // n_process
-    remainder = video_sequence.n_seq % n_process
+    subarray_length = (video_sequence.n_seq + 1) // n_process
+    remainder = (video_sequence.n_seq + 1) % n_process
 
-    prev_idx = 0
+    logging.debug(f'[run_ebsynth] n_process: {n_process}, subarray_length: {subarray_length}, remainder: {remainder}')
+    logging.debug(f'[run_ebsynth] video_sequence.key_frames: {video_sequence.key_frames}')
+
+    start_index = 0
 
     for i in range(n_process):
-        task_cnt = cnt + 1 if i < remainder else cnt
-        i_arr = list(range(prev_idx, prev_idx + task_cnt))
-        prev_idx += task_cnt
+        # task_cnt = cnt + 1 if i < remainder else cnt
+        end_index = start_index + subarray_length + (1 if i < remainder else 0)
+        i_arr = list(range(start_index, end_index))
+        start_index = end_index
+        logging.debug(f'[run_ebsynth] Spawning thread {i} for {i_arr}')
         p = mp.Process(target=process_sequences, args=(i_arr, video_sequence))
         p.start()
         processes.append(p)
@@ -134,7 +160,7 @@ def run_ebsynth(video_sequence: VideoSequence):
 
     end = time.time()
 
-    print(f'ebsynth: {end-beg}')
+    print(f"[TIME] (run_ebsynth)      : {end-beg} seconds")
 
 
 @njit
@@ -174,26 +200,25 @@ def process_seq(video_sequence: VideoSequence,
 
     key1_img = cv2.imread(video_sequence.get_key_img(i))
     img_shape = key1_img.shape
-    interval = video_sequence.interval
     beg_id = video_sequence.get_sequence_beg_id(i)
 
-    oas = video_sequence.get_output_sequence(i)
-    obs = video_sequence.get_output_sequence(i, False)
+    oas = video_sequence.get_output_sequence(i)   # TODO: function modified, check if this is correct
+    obs = video_sequence.get_output_sequence(i, is_forward=False)   # TODO: function modified, check if this is correct
 
     binas = [x.replace('jpg', 'bin') for x in oas]
     binbs = [x.replace('jpg', 'bin') for x in obs]
 
     obs = [obs[0]] + list(reversed(obs[1:]))
-    inputs = video_sequence.get_input_sequence(i)
+    inputs = video_sequence.get_input_sequence(i)  # TODO: function modified, check if this is correct
     oas = [cv2.imread(x) for x in oas]
     obs = [cv2.imread(x) for x in obs]
     inputs = [cv2.imread(x) for x in inputs]
-    flow_seq = video_sequence.get_flow_sequence(i)
+    flow_seq = video_sequence.get_flow_sequence(i)  # TODO: function modified, check if this is correct
 
     dist1s = []
     dist2s = []
-    for i in range(interval - 1):
-        bin_a = binas[i + 1]
+    for i in range(len(oas) - 1):
+        bin_a = binas[i + 1]  # BUG: index out of range here
         bin_b = binbs[i + 1]
         dist1s.append(load_error(bin_a, img_shape))
         dist2s.append(load_error(bin_b, img_shape))
@@ -207,7 +232,7 @@ def process_seq(video_sequence: VideoSequence,
     blend_out_path = video_sequence.get_blending_img(beg_id)
     cv2.imwrite(blend_out_path, key1_img)
 
-    for i in range(interval - 1):
+    for i in range(len(oas) - 1):
         c_id = beg_id + i + 1
         blend_out_path = video_sequence.get_blending_img(c_id)
 
@@ -215,7 +240,7 @@ def process_seq(video_sequence: VideoSequence,
         dist2 = dist2s[i]
         oa = oas[i + 1]
         ob = obs[i + 1]
-        weight1 = i / (interval - 1) * (ub - lb) + lb
+        weight1 = i / len(oas) * (ub - lb) + lb
         weight2 = 1 - weight1
         mask = g_error_mask(dist1, dist2, weight1, weight2)
         if p_mask is not None:
@@ -250,15 +275,14 @@ def process_seq(video_sequence: VideoSequence,
 
         cv2.imwrite(blend_out_path, res)
     end = time.time()
-    print('others:', end - beg)
+    logging.info('others:', end - beg)
 
 
 def main(args):
     global MAX_PROCESS
     MAX_PROCESS = args.n_proc
 
-    video_sequence = create_sequence(f'{args.name}', args.beg, args.end,
-                                     args.itv, args.key)
+    video_sequence = create_sequence(f'{args.name}', args.beg, args.end, args.key)
     if not args.ne:
         run_ebsynth(video_sequence)
     blend_histogram = True
@@ -273,46 +297,47 @@ def main(args):
 
 
 if __name__ == '__main__':
+    """
+    Sample usage: python video_blend.py videos/pexels-koolshooters-7322716 --beg 1 --end 101 --key keys  
+    --output videos/pexels-koolshooters-7322716/blend.mp4 --fps 25.0 --n_proc 4  -ps
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument('name', type=str, help='Path to input video')
+    parser.add_argument('name', type=str,
+                        help='Path to input video')  # videos/pexels-koolshooters-7322716
     parser.add_argument('--output',
                         type=str,
                         default=None,
-                        help='Path to output video')
+                        help='Path to output video')  # videos/pexels-koolshooters-7322716/blend.mp4
     parser.add_argument('--fps',
                         type=float,
                         default=30,
-                        help='The FPS of output video')
+                        help='The FPS of output video')  # 25.0
     parser.add_argument('--beg',
                         type=int,
                         default=1,
-                        help='The index of the first frame to be stylized')
+                        help='The index of the first frame to be stylized')  # 1
     parser.add_argument('--end',
                         type=int,
                         default=101,
-                        help='The index of the last frame to be stylized')
-    parser.add_argument('--itv',
-                        type=int,
-                        default=10,
-                        help='The interval of key frame')
+                        help='The index of the last frame to be stylized')  # 101
     parser.add_argument('--key',
                         type=str,
                         default='keys0',
-                        help='The subfolder name of stylized key frames')
+                        help='The subfolder name of stylized key frames')  # "keys"
     parser.add_argument('--n_proc',
                         type=int,
                         default=8,
-                        help='The max process count')
+                        help='The max process count')  # 4
     parser.add_argument('-ps',
                         action='store_true',
-                        help='Use poisson gradient blending')
+                        help='Use poisson gradient blending')  # True
     parser.add_argument(
         '-ne',
         action='store_true',
-        help='Do not run ebsynth (use previous ebsynth output)')
+        help='Do not run ebsynth (use previous ebsynth output)')  # defaulted to: False
     parser.add_argument('-tmp',
                         action='store_true',
-                        help='Keep temporary output')
+                        help='Keep temporary output')  # defaulted to: False
 
     args = parser.parse_args()
     main(args)
